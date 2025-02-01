@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+type Language {
+  ar String
+  en String
+}
+
+model User {
+  id                  String               @id @default(auto()) @map("_id") @db.ObjectId
+  username            String               @unique
+  name                String?
+  bio                 String?
+  image               String?
+  birthDate           DateTime?
+  authByEmail         AuthByEmail?
+  createdAt           DateTime             @default(now())
+  updateAt            DateTime             @updatedAt
+  notificationsTokens NotificationsToken[]
+  phones              Phone[]              @relation(fields: [phonesID], references: [id])
+  phonesID            String[]             @db.ObjectId
+  preferences         Preference[]         @relation(fields: [preferenceIDs], references: [id])
+  preferenceIDs       String[]             @db.ObjectId
+  notifications       Notification[]       @relation(fields: [notificationIDs], references: [id])
+  notificationIDs     String[]             @db.ObjectId
+}
+
+model NotificationsToken {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  token  String @unique
+  User   User   @relation(fields: [userId], references: [id])
+  userId String @db.ObjectId
+}
+
+model Phone {
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  uniqueID String   @unique
+  usersID  String[] @db.ObjectId
+  users    User[]   @relation(fields: [usersID], references: [id])
+}
+
+model AuthByEmail {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updateAt  DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String   @unique @db.ObjectId
+}
+
+model Preference {
+  id      String   @id @default(auto()) @map("_id") @db.ObjectId
+  title   Language
+  image   String
+  users   User[]   @relation(fields: [userIDs], references: [id])
+  userIDs String[] @db.ObjectId
+}
+
+model Notification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  title     Language
+  body      Language
+  users     User[]   @relation(fields: [userIDs], references: [id])
+  userIDs   String[] @db.ObjectId
+  createdAt DateTime @default(now())
+  data      Json?
+  seen      Boolean  @default(false) // for the seen properity, edited by hossam
+  notificationType  String 
+}

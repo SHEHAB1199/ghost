@@ -1,0 +1,34 @@
+{
+  "login-success": {
+    "ar": "تم تسجيل الدخول بنجاح",
+    "en": "You have logged in successfully"
+  },
+  "otp-phone-send": {
+    "ar": "تم إرسال OTP إلى رقم هاتفك",
+    "en": "An OTP has been sent to your phone number"
+  },
+  "otp-mail-send": {
+    "ar": "لقد تم إرسال (OTP) إلى بريدك الإلكتروني",
+    "en": "An OTP has been sent to your Email"
+  },
+  "otp-invaild": {
+    "ar": "رمز OTP غير صالح",
+    "en": "Invalid OTP code"
+  },
+  "set-preferences": {
+    "ar": "تمت إضافة التفضيلات بنجاح",
+    "en": "Preferences added successfully"
+  },
+  "set-profile": {
+    "ar": "تم تحديث الملف الشخصي بنجاح",
+    "en": "The profile has been updated successfully"
+  },
+  "vaild-username": {
+    "ar": "اسم مستخدم صالح",
+    "en": "Vaild Username"
+  },
+  "invaild-username": {
+    "ar": "مستخدم بالفعل",
+    "en": "Already Used"
+  }
+}
