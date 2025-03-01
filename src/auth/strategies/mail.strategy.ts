@@ -4,7 +4,6 @@ import { CacheService } from 'src/cache/cache.service';
 import { CatchError } from 'decorators/CatchError.decorator';
 import { AuthStrategy } from './auth.strategy';
 import { MailRegisterationDto, MailVerificationDto } from '../dtos/mail.dto';
-import { User } from '@prisma/client';
 import sendMail from 'utils/sendMail';
 import languages from 'languages.json';
 
@@ -22,16 +21,48 @@ export class MailStrategy extends AuthStrategy {
   }
 
   @CatchError()
-  async register({ email, password }: MailRegisterationDto) {
-    console.log({ email, password });
-    const otp = this.generateOtp(5);
-    await sendMail({ to: email, subject: 'otp', text: `this is otp ${otp}` });
-    await this.cacheService.set(email, { password, otp }, 3 * 60);
-    return languages['otp-mail-send'];
+  async login({ email, password }: MailRegisterationDto) {
+    const authMail = await this.database.authByEmail.findUnique({
+      where: { email },
+      include: { user: true },
+    });
+    if (!authMail)
+      return {
+        messages: [
+          { content: languages['login-mail-not-found'], isSuccess: false },
+        ],
+      };
+    if (authMail.password != password)
+      return {
+        messages: [
+          { content: languages['login-password-incorrect'], isSuccess: false },
+        ],
+      };
+    return {
+      user: authMail.user,
+      messages: [{ content: languages['login-success'], isSuccess: true }],
+    };
   }
 
   @CatchError()
-  async verify({ email, otp }: MailVerificationDto): Promise<User | null> {
+  async register({ email, password }: MailRegisterationDto) {
+    const isExist = await this.database.authByEmail.count({
+      where: { email },
+    });
+    if (isExist)
+      return {
+        messages: [{ content: languages['email-exist'], isSuccess: true }],
+      };
+    const otp = this.generateOtp(5);
+    await sendMail({ to: email, subject: 'otp', text: `this is otp ${otp}` });
+    await this.cacheService.set(email, { password, otp }, 3 * 60);
+    return {
+      messages: [{ content: languages['otp-mail-send'], isSuccess: true }],
+    };
+  }
+
+  @CatchError()
+  async verify({ email, otp }: MailVerificationDto) {
     const cachedValue = await this.cacheService.get<{
       password: string;
       otp: number;
@@ -39,7 +70,9 @@ export class MailStrategy extends AuthStrategy {
 
     if (cachedValue && cachedValue?.otp == otp)
       return this.createUser({ email, password: cachedValue.password });
-    return null;
+    return {
+      messages: [{ content: languages['otp-invaild'], isSuccess: true }],
+    };
   }
 
   @CatchError()
@@ -55,6 +88,9 @@ export class MailStrategy extends AuthStrategy {
         userId: user.id,
       },
     });
-    return user;
+    return {
+      user,
+      messages: [{ content: languages['signup-success'], isSuccess: true }],
+    };
   }
 }

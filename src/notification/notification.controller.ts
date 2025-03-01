@@ -1,4 +1,4 @@
-import { Controller, Get, Delete, Param, Patch, Query, Body, Post } from '@nestjs/common';
+import { Controller, Get, Delete, Param, Patch, Query } from '@nestjs/common';
 import { NotificationService } from './notification.service';
 import { UserDecorator } from 'decorators/user.decorator';
 
@@ -7,29 +7,22 @@ export class NotificationController {
   constructor(private notificationService: NotificationService) {}
 
   @Get()
-  async getNotification(
-    @UserDecorator({ idOnly: true }) userID: string,
-    @Query('type') notificationType?: string, // type is optional
-  ) {
-    const filter: any = {
-      userIDs: { has: userID },
-    };
+    async getNotification(
+      @UserDecorator({ idOnly: true }) userID: string,
+      @Query('type') notificationType?: string, // type is optional
+    ) {
+      const filter: any = {
+        userIDs: { has: userID },
+      };
 
-    if (notificationType) {
-      filter.notificationType = notificationType; // Add notificationType filter only if provided
+      if (notificationType) {
+        filter.type = notificationType; // Add type filter only if provided
+      }
+
+      return await this.notificationService.getNotifications(filter);
     }
 
-    // Get notifications from the service
-    return await this.notificationService.getNotifications(filter);
-  }
 
-  @Post('/send')
-  async sendNotification(
-    @Body() notification: any,
-  ) {
-    // Send and store notification
-    return await this.notificationService.sendNotification(notification);
-  }
 
   @Patch(':notificationID/seen')
   async markNotificationAsSeen(

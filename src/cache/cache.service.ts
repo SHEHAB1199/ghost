@@ -41,4 +41,22 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
     const exists = await this.client.exists(key);
     return exists > 0;
   }
+
+  @CatchError()
+  async getSet(key: string): Promise<string[]> {
+    return this.client.smembers(key);
+  }
+
+  @CatchError()
+  async addToSet(key: string, value: (string | number)[]): Promise<number> {
+    return this.client.sadd(key, ...value);
+  }
+
+  @CatchError()
+  async removeFromSet(
+    key: string,
+    value: (string | number)[],
+  ): Promise<number> {
+    return this.client.srem(key, ...value);
+  }
 }

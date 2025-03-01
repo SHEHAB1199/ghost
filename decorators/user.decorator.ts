@@ -7,6 +7,40 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CacheService } from 'src/cache/cache.service';
 import { UnauthorizedException } from '@nestjs/common';
 
+export type UserType = User & { following: string[] };
+export type UserDecoratorReturnType = Promise<UserType | string>;
+
+export const UserDecorator = createParamDecorator(
+  async (
+    { idOnly = false }: { idOnly?: boolean } = { idOnly: false },
+    ctx: ExecutionContext,
+  ): UserDecoratorReturnType => {
+    try {
+      const token = getToken(ctx);
+      const { id } = await jwtService.verifyAsync<{ id: string }>(token);
+      const userCached = await cacheService.get<UserDecoratorReturnType>(id);
+      if (userCached) return idOnly ? id : userCached;
+      const user = await databaseService.user.findUnique({
+        where: { id },
+        include: {
+          following: {
+            select: {
+              followingId: true,
+            },
+          },
+        },
+      });
+      const following = user.following.map((f) => f.followingId);
+      delete user.following;
+      await cacheService.set(id, { user, ...following }, 60 * 60 * 24);
+      return idOnly ? user.id : { ...user, following };
+    } catch (error: any) {
+      console.error(error);
+      handleError(ctx, error);
+    }
+  },
+);
+
 const databaseService = new DataBaseService(new EventEmitter2());
 databaseService.onModuleInit();
 const cacheService = new CacheService();
@@ -16,32 +50,13 @@ const jwtService = new JwtService({
   signOptions: { expiresIn: '60m' },
 });
 
-const getToken = (req: FastifyRequest) => {
-  const token = req.headers['authorization']?.split(' ')[1];
+const getToken = (ctx: ExecutionContext) => {
+  const req = ctx.switchToHttp().getRequest<FastifyRequest>();
+  const token = req.headers['authorization']?.split(' ')?.at(1);
   if (!token) throw new UnauthorizedException('No token provided');
   return token;
 };
 
-export const UserDecorator = createParamDecorator(
-  async (
-    { idOnly = false }: { idOnly?: boolean } = { idOnly: false },
-    ctx: ExecutionContext,
-  ): Promise<User | string> => {
-    const req = ctx.switchToHttp().getRequest<FastifyRequest>();
-    try {
-      const token = getToken(req);
-      const { id } = await jwtService.verifyAsync<{ id: string }>(token);
-      if (idOnly) return id;
-      const userCached = await cacheService.get<User>(id);
-      if (userCached) return userCached;
-      const user = await databaseService.user.findUnique({
-        where: { id },
-      });
-      cacheService.set(id, user, 60 * 60 * 24);
-      return user;
-    } catch (error: any) {
-      console.error(error);
-      throw new UnauthorizedException(error?.message ?? 'Invalid token');
-    }
-  },
-);
+const handleError = (ctx: ExecutionContext, error: any) => {
+  throw new UnauthorizedException(error?.message ?? 'Invalid token');
+};

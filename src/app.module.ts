@@ -4,31 +4,36 @@ import { AuthModule } from './auth/auth.module';
 import { DatabaseModule } from './database/database.module';
 import { HttpModule } from '@nestjs/axios';
 import { CacheModule } from './cache/cache.module';
-import { UserModule } from './user/user.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { JwtModule } from '@nestjs/jwt';
-// import { PreferenceModule } from './preference/preference.module';
-// import { CloudModule } from './cloud/cloud.module';
-// import { FirebaseModule } from './firebase/firebase.module';
-import { NotificationModule } from './notification/notification.module';
-
+// import { JwtModule } from '@nestjs/jwt';
+import { ReelsModule } from './reels/reels.module';
+import { UserModule } from './user/user.module';
+import { PostsModule } from './posts/posts.module';
+import { CloudModule } from './cloud/cloud.module';
+import { ChatsModule } from './chats/chats.module';
+import { StreamModule } from './stream/stream.module';
+import { WhatsappModule } from './auth/whatsapp/whatsapp.module';
+import { PoliceModule } from './police/police.module';
 @Module({
   imports: [
-    JwtModule.register({
-      secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '360 days' },
-    }),
+    // JwtModule.register({
+    //   secret: process.env.JWT_SECRET,
+    //   signOptions: { expiresIn: '360 days' },
+    // }),
     ConfigModule.forRoot(),
     EventEmitterModule.forRoot(),
     AuthModule,
+    ReelsModule,
     DatabaseModule,
     HttpModule,
     CacheModule,
     UserModule,
-    // PreferenceModule,
-    // CloudModule,
-    // FirebaseModule,
-    NotificationModule,
+    PostsModule,
+    CloudModule,
+    ChatsModule,
+    StreamModule,
+    WhatsappModule,
+    PoliceModule
   ],
   controllers: [],
 })

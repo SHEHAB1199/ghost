@@ -8,7 +8,7 @@ export type Handler = (
 const defaultHandler: Handler = (error: any, propertyKey: string | symbol) => {
   console.error(`Error in method ${String(propertyKey)}:`, error);
   if (error instanceof HttpException) throw error;
-  throw new HttpException(error?.message ?? error, HttpStatus.BAD_REQUEST);
+  throw new HttpException('Invaild Request', HttpStatus.BAD_REQUEST);
 };
 
 export function CatchError(handler: Handler = defaultHandler): MethodDecorator {

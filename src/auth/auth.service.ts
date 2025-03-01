@@ -18,6 +18,19 @@ export class AuthService {
   }
 
   @CatchError()
+  async login(arg: RegisterArg, stratigy: string) {
+    const handler = getHandler<AuthStrategy>(this.stratiges, stratigy);
+    const { user, messages } = await handler.login(arg);
+    if (user)
+      return {
+        token: this.jwtService.sign({ id: user.id }),
+        user,
+        messages,
+      };
+    return { messages };
+  }
+
+  @CatchError()
   async register(arg: RegisterArg, stratigy: string) {
     const handler = getHandler<AuthStrategy>(this.stratiges, stratigy);
     return handler.register(arg);
@@ -26,13 +39,13 @@ export class AuthService {
   @CatchError()
   async verify(arg: VerifyArg, stratigy: string) {
     const handler = getHandler<AuthStrategy>(this.stratiges, stratigy);
-    const user = await handler.verify(arg);
+    const { user, messages } = await handler.verify(arg);
     if (user)
       return {
         token: this.jwtService.sign({ id: user.id }),
         user,
-        messages: [languages['login-success']],
+        messages,
       };
-    return languages['otp-invaild'];
+    return { messages: [languages['otp-invaild']] };
   }
 }

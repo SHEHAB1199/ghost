@@ -4,6 +4,7 @@ import {
   StorageSharedKeyCredential,
   generateBlobSASQueryParameters,
   BlobSASPermissions,
+  ContainerClient,
 } from '@azure/storage-blob';
 import { CatchError } from 'decorators/CatchError.decorator';
 import { CloudStrategy } from './cloud.interface';
@@ -26,11 +27,17 @@ export class AzureStrategy implements CloudStrategy {
   }
 
   @CatchError()
-  async generateSASToken(blobName: string) {
+  async generateSASToken({
+    path,
+    contentType,
+  }: {
+    path: string;
+    contentType: string;
+  }) {
     const containerClient = this.blobServiceClient.getContainerClient(
       this.containerName,
     );
-    const blobClient = containerClient.getBlobClient(blobName);
+    const blobClient = containerClient.getBlobClient(path);
 
     const permissions = new BlobSASPermissions();
     permissions.write = true;
@@ -39,13 +46,29 @@ export class AzureStrategy implements CloudStrategy {
     const sasToken = generateBlobSASQueryParameters(
       {
         containerName: this.containerName,
-        blobName: blobName,
+        blobName: path,
         permissions: permissions,
         expiresOn: new Date(new Date().valueOf() + 3600 * 1000),
+        startsOn: new Date(),
+        contentType: contentType,
       },
       this.blobServiceClient.credential as StorageSharedKeyCredential,
     );
 
     return `${blobClient.url}?${sasToken}`;
+  }
+
+  @CatchError()
+  async makePublic({ path }: { path: string }) {
+    const blob = path
+      .split('?')
+      .at(0)
+      .split(this.containerName + '/')
+      .at(-1);
+    const containerClient: ContainerClient =
+      this.blobServiceClient.getContainerClient(this.containerName);
+    await containerClient.setAccessPolicy('blob');
+    const blobClient = containerClient.getBlobClient(blob);
+    return `${blobClient.url}`;
   }
 }

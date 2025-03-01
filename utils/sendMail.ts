@@ -19,17 +19,15 @@ async function sendMail({
   subject,
   text,
   html,
-}: MailOptions): Promise<void> {
+}: MailOptions): Promise<any> {
   try {
-    const res = await transporter.sendMail({
+    return transporter.sendMail({
       from: process.env.EMAIL_USER,
       to,
       subject,
       text,
       html,
     });
-    console.log('Email sent successfully!');
-    console.log({ res });
   } catch (error) {
     console.error('Error sending email:', error);
   }

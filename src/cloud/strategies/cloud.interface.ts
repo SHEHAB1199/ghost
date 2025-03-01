@@ -1,3 +1,8 @@
 export interface CloudStrategy {
-  generateSASToken(filename: string): Promise<string>;
+  generateSASToken(args: {
+    path: string;
+    contentType: string;
+  }): Promise<string>;
+
+  makePublic(args: { path: string }): Promise<string>;
 }

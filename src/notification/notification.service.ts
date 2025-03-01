@@ -49,23 +49,8 @@ export class NotificationService {
       }
     }
 
-    // Store notifications in the database
-    const savedNotifications = await this.database.notification.createMany({
-      data: tokens.map((token: string) => ({
-        title: notification.title.ar,
-        body: notification.body.ar,
-        type: notification.type,
-        userIDs: notification.users.map((user: any) => user.id),
-        notificationType: notification.type,
-        createdAt: new Date(),
-        seen: false,
-        data: notification.data,
-      })),
-    });
-
-    return { responses, savedNotifications };
+    return responses;
   }
-
 
   @CatchError()
   async deleteNotifications(where: Prisma.NotificationWhereInput) {

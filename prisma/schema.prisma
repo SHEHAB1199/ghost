@@ -12,37 +12,105 @@ type Language {
   en String
 }
 
+type PostContent {
+  text   String?
+  images String[]
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum Role {
+  USER
+  POLICE
+  ADMIN
+}
+
 model User {
-  id                  String               @id @default(auto()) @map("_id") @db.ObjectId
-  username            String               @unique
-  name                String?
-  bio                 String?
-  image               String?
-  birthDate           DateTime?
-  authByEmail         AuthByEmail?
-  createdAt           DateTime             @default(now())
-  updateAt            DateTime             @updatedAt
-  notificationsTokens NotificationsToken[]
-  phones              Phone[]              @relation(fields: [phonesID], references: [id])
-  phonesID            String[]             @db.ObjectId
-  preferences         Preference[]         @relation(fields: [preferenceIDs], references: [id])
-  preferenceIDs       String[]             @db.ObjectId
-  notifications       Notification[]       @relation(fields: [notificationIDs], references: [id])
-  notificationIDs     String[]             @db.ObjectId
+  id              String          @id @default(auto()) @map("_id") @db.ObjectId
+  username        String          @unique
+  name            String?
+  phoneNumber     String?
+  bio             String?
+  image           String?
+  cover           String?
+  birthDate       DateTime?
+  gender          Gender?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  lastConnect     DateTime        @default(now())
+  authByEmail     AuthByEmail?
+  reels           Reel[]
+  reelsLoves      ReelLove[]
+  reelsSaves      ReelSave[]
+  reelsComments   ReelComment[]
+  followers       Follower[]      @relation("FollowersRelation")
+  following       Follower[]      @relation("FollowingRelation")
+  posts           Post[]
+  postComments    PostComment[]
+  postSaves       PostSave[]
+  postLoves       PostLove[]
+  userGroupChats  UserGroupChat[]
+  messages        Message[]
+  sended          Chat[]          @relation("SenderRelation")
+  received        Chat[]          @relation("ReceiverRelation")
+  groupMessages   GroupMessage[]
+  blockedBy       Block[]         @relation("BlockedBy")
+  blockedFor      Block[]         @relation("BlockedFor")
+  notifications   Notification[]  @relation(fields: [notificationIDs], references: [id])
+  notificationIDs String[]        @db.ObjectId
+  otp             String? // Optional OTP field
+  otpExpires      DateTime? // Optional OTP expiration field
+  role            Role            @default(USER) // Assign default role as USER
+  isBanned        Boolean         @default(false)
+  reportsMade     Report[]        @relation("ReportsMade") // Reports made by this user
+  reportsReceived Report[]        @relation("ReportsReceived") // Reports received by this user
+  bannedUsers     BannedUser[]    @relation("UserBans") // Add this line
 }
 
-model NotificationsToken {
-  id     String @id @default(auto()) @map("_id") @db.ObjectId
-  token  String @unique
-  User   User   @relation(fields: [userId], references: [id])
-  userId String @db.ObjectId
+model Police {
+  id              String       @id @default(auto()) @map("_id") @db.ObjectId
+  username        String       @unique
+  image           String?
+  cover           String?
+  phoneNumber     String       @unique
+  name            String?
+  badgeNumber     String       @unique
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  managedReports  Report[]     @relation("PoliceReports") // Reports handled by this police user
+  reviewedReports Report[]     @relation("ReportReviews") // Reports reviewed by this police user
+  role            Role         @default(POLICE)
+  bannedUsers     BannedUser[] @relation("PoliceBans") // Add this line
 }
 
-model Phone {
-  id       String   @id @default(auto()) @map("_id") @db.ObjectId
-  uniqueID String   @unique
-  usersID  String[] @db.ObjectId
-  users    User[]   @relation(fields: [usersID], references: [id])
+model Report {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  reportedBy     User     @relation(name: "ReportsMade", fields: [reportedById], references: [id])
+  reportedById   String   @db.ObjectId
+  reportedUser   User     @relation(name: "ReportsReceived", fields: [reportedUserId], references: [id])
+  reportedUserId String   @db.ObjectId
+  reviewedBy     Police?  @relation(name: "ReportReviews", fields: [reviewedById], references: [id])
+  reviewedById   String?  @db.ObjectId
+  police         Police?  @relation(name: "PoliceReports", fields: [policeId], references: [id]) // Opposite relation for managedReports
+  policeId       String?  @db.ObjectId
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model BannedUser {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String    @db.ObjectId
+  user       User      @relation(name: "UserBans", fields: [userId], references: [id]) // Add relation name
+  bannedBy   Police    @relation(name: "PoliceBans", fields: [bannedById], references: [id]) // Add relation name
+  bannedById String    @db.ObjectId
+  bannedAt   DateTime  @default(now())
+  unbannedAt DateTime?
+  reason     String?
+
+  @@unique([userId, bannedById])
 }
 
 model AuthByEmail {
@@ -50,27 +118,210 @@ model AuthByEmail {
   email     String   @unique
   password  String
   createdAt DateTime @default(now())
-  updateAt  DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id])
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String   @unique @db.ObjectId
 }
 
-model Preference {
-  id      String   @id @default(auto()) @map("_id") @db.ObjectId
-  title   Language
-  image   String
-  users   User[]   @relation(fields: [userIDs], references: [id])
-  userIDs String[] @db.ObjectId
+model Reel {
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  content     String?
+  url         String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  publisher   User          @relation(fields: [publisherId], references: [id], onDelete: Cascade)
+  publisherId String        @db.ObjectId
+  loves       ReelLove[]
+  saves       ReelSave[]
+  comments    ReelComment[]
+}
+
+model ReelLove {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now())
+  reel      Reel     @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  reelId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @db.ObjectId
+
+  @@unique([reelId, userId])
+}
+
+model ReelSave {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now())
+  reel      Reel     @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  reelId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @db.ObjectId
+
+  @@unique([reelId, userId])
+}
+
+model ReelComment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  reel      Reel     @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  reelId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @db.ObjectId
+
+  @@unique([reelId, userId])
+}
+
+model Follower {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt   DateTime @default(now())
+  follower    User     @relation("FollowingRelation", fields: [followerId], references: [id], onDelete: Cascade)
+  followerId  String   @db.ObjectId
+  following   User     @relation("FollowersRelation", fields: [followingId], references: [id], onDelete: Cascade)
+  followingId String   @db.ObjectId
+
+  @@unique([followerId, followingId])
+}
+
+model Block {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now())
+  blocker   User     @relation("BlockedBy", fields: [blockerId], references: [id])
+  blockerId String   @db.ObjectId
+  blocked   User     @relation("BlockedFor", fields: [blockedId], references: [id])
+  blockedId String   @db.ObjectId
+
+  @@unique([blockerId, blockedId])
+}
+
+model Post {
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  content     PostContent
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  publisher   User          @relation(fields: [publisherId], references: [id])
+  publisherId String        @db.ObjectId
+  comments    PostComment[]
+  saves       PostSave[]
+  loves       PostLove[]
+}
+
+model PostLove {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @db.ObjectId
+
+  @@unique([postId, userId])
+}
+
+model PostSave {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @db.ObjectId
+
+  @@unique([postId, userId])
+}
+
+model PostComment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @db.ObjectId
+
+  @@unique([postId, userId])
+}
+
+model UserGroupChat {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  isAdmin   Boolean   @default(false)
+  isMute    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id])
+  userId    String    @db.ObjectId
+  group     GroupChat @relation(fields: [groupId], references: [id])
+  groupId   String    @db.ObjectId
+
+  @@unique([userId, groupId])
+}
+
+model GroupChat {
+  id            String          @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  messages      GroupMessage[]
+  userGroupChat UserGroupChat[]
+
+  @@index([updatedAt])
+}
+
+model GroupMessage {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime  @default(now())
+  group     GroupChat @relation(fields: [groupId], references: [id])
+  groupId   String    @db.ObjectId
+  sender    User      @relation(fields: [senderId], references: [id])
+  senderId  String    @db.ObjectId
+
+  @@index([createdAt])
+}
+
+type UserChatStatus {
+  isMute   Boolean  @default(false)
+  lastSeen DateTime
+}
+
+model Chat {
+  id             String         @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  sender         User           @relation("SenderRelation", fields: [senderId], references: [id])
+  senderId       String         @db.ObjectId
+  senderStatus   UserChatStatus
+  receiver       User           @relation("ReceiverRelation", fields: [receiverId], references: [id])
+  receiverId     String         @db.ObjectId
+  receiverStatus UserChatStatus
+  messages       Message[]
+
+  @@index([updatedAt])
+}
+
+type MessageContent {
+  text   String?
+  image  String?
+  record String?
+  audio  String?
+  video  String?
+}
+
+model Message {
+  id        String         @id @default(auto()) @map("_id") @db.ObjectId
+  content   MessageContent
+  createdAt DateTime       @default(now())
+  chat      Chat           @relation(fields: [chatId], references: [id])
+  chatId    String         @db.ObjectId
+  sender    User           @relation(fields: [senderId], references: [id])
+  senderId  String         @db.ObjectId
+
+  @@index([createdAt])
 }
 
 model Notification {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  title     Language
-  body      Language
-  users     User[]   @relation(fields: [userIDs], references: [id])
-  userIDs   String[] @db.ObjectId
-  createdAt DateTime @default(now())
-  data      Json?
-  seen      Boolean  @default(false) // for the seen properity, edited by hossam
-  notificationType  String 
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  title            Language
+  body             Language
+  users            User[]   @relation(fields: [userIDs], references: [id])
+  userIDs          String[] @db.ObjectId
+  createdAt        DateTime @default(now())
+  data             Json?
+  seen             Boolean  @default(false) // for the seen property, edited by hossam
+  notificationType String
 }

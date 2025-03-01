@@ -4,13 +4,11 @@ import {
   Body,
   ValidationPipe,
   Get,
-  Patch,
   Query,
   ParseEnumPipe,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { UserDecorator } from 'decorators/user.decorator';
-import { User } from '@prisma/client';
+import { UserDecorator, UserType } from 'decorators/user.decorator';
 import { AuthStrategies } from './dtos/auth.dto';
 import { MailRegisterationDto, MailVerificationDto } from './dtos/mail.dto';
 
@@ -18,8 +16,17 @@ import { MailRegisterationDto, MailVerificationDto } from './dtos/mail.dto';
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  @Post()
-  async register(
+  @Post('login')
+  async login(
+    @Body(new ValidationPipe()) arg: MailRegisterationDto,
+    @Query('strategy', new ParseEnumPipe(AuthStrategies))
+    strategy: AuthStrategies,
+  ) {
+    return this.authService.login(arg, strategy);
+  }
+
+  @Post('signup')
+  async signup(
     @Body(new ValidationPipe()) arg: MailRegisterationDto,
     @Query('strategy', new ParseEnumPipe(AuthStrategies))
     strategy: AuthStrategies,
@@ -27,7 +34,7 @@ export class AuthController {
     return this.authService.register(arg, strategy);
   }
 
-  @Patch()
+  @Post('verify')
   async verify(
     @Body(new ValidationPipe()) arg: MailVerificationDto,
     @Query('strategy', new ParseEnumPipe(AuthStrategies))
@@ -37,7 +44,7 @@ export class AuthController {
   }
 
   @Get()
-  async verifyToken(@UserDecorator() user: User) {
+  async verifyToken(@UserDecorator() user: UserType) {
     return user;
   }
 }
